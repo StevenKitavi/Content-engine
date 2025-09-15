@@ -15,6 +15,10 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # This is required for requesting the JWT
+      packages: write # This is required for pushing packages
     env:
       BASE_DIR: ${{ secrets.BASE_DIR || 'src/' }}
       # Disable Django's collectstatic command by default
@@ -45,12 +49,6 @@ jobs:
       with:
         cosign-release: 'v2.2.0'
 
-    - name: Sign container image with Cosign
-      env:
-        COSIGN_EXPERIMENTAL: 1
-      run: |
-        cosign sign --yes ${{ env.DOCKER_HUB_REPO }}:${{ env.DOCKER_HUB_IMAGE_TAG }}
-
     - name: Login to Docker Hub
       id: docker_login
       uses: docker/login-action@v3
@@ -63,6 +61,20 @@ jobs:
       run: |
         echo "Failed to log in to Docker Hub. Please check your credentials."
         exit 1
+
+    - name: Sign container image with Cosign
+      env:
+        COSIGN_EXPERIMENTAL: 1
+      run: |
+        # Initialize cosign with retry logic for TUF metadata
+        cosign initialize --mirror=https://tuf-repo-cdn.sigstore.dev --root=https://tuf-repo-cdn.sigstore.dev/root.json || \
+        cosign initialize || echo "Cosign initialization had issues, continuing with signing..."
+        
+        # Sign the container image with additional flags to handle TUF issues
+        cosign sign --yes \
+          --oidc-issuer=https://token.actions.githubusercontent.com \
+          --oidc-client-id=sigstore \
+          ${{ env.DOCKER_HUB_REPO }}:${{ env.DOCKER_HUB_IMAGE_TAG }}
 
     - name: Tag the container as latest as well specific version
       run: |
