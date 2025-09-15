@@ -70,8 +70,6 @@ jobs:
         
         # Use GitHub OIDC with TUF bypass to avoid metadata issues
         cosign sign --yes \
-          --insecure-ignore-tlog \
-          --insecure-ignore-sct \
           --oidc-issuer=https://token.actions.githubusercontent.com \
           --oidc-client-id=sigstore \
           ${{ env.DOCKER_HUB_REPO }}:${{ env.DOCKER_HUB_IMAGE_TAG }}
