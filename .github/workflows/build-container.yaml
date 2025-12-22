@@ -62,6 +62,13 @@ jobs:
         echo "Failed to log in to Docker Hub. Please check your credentials."
         exit 1
 
+    - name: Tag the container as latest as well specific version
+      run: |
+        docker tag ${{ env.DOCKER_HUB_REPO }}:${{ env.DOCKER_HUB_IMAGE_TAG }} ${{ env.DOCKER_HUB_REPO }}:latest
+
+    - name: Push the specific version and latest tag to Docker Hub
+      run: docker push ${{ env.DOCKER_HUB_REPO }} --all-tags
+
     - name: Sign container image with Cosign
       env:
         COSIGN_EXPERIMENTAL: 1
@@ -75,10 +82,3 @@ jobs:
           ${{ env.DOCKER_HUB_REPO }}:${{ env.DOCKER_HUB_IMAGE_TAG }}
         
         echo "Container image signed successfully!"
-
-    - name: Tag the container as latest as well specific version
-      run: |
-        docker tag ${{ env.DOCKER_HUB_REPO }}:${{ env.DOCKER_HUB_IMAGE_TAG }} ${{ env.DOCKER_HUB_REPO }}:latest
-
-    - name: Push the specific version and latest tag to Docker Hub
-      run: docker push ${{ env.DOCKER_HUB_REPO }} --all-tags
